@@ -1,0 +1,24 @@
+Explanation: : mos
+Package: *
+Pin: release a=mos{{ env_release }}, o=Mirantis
+Pin-Priority: 1050
+
+Explanation: : mos-security
+Package: *
+Pin: release a=mos{{ env_release }}-security, o=Mirantis
+Pin-Priority: 1050
+
+Explanation: : mos-updates
+Package: *
+Pin: release a=mos{{ env_release }}-updates, o=Mirantis
+Pin-Priority: 1050
+
+Explanation: : mos-holdback
+Package: *
+Pin: release a=mos{{ env_release }}-proposed, o=Mirantis
+Pin-Priority: 1100
+
+Explanation: : mos-proposed
+Package: *
+Pin: release a=mos{{ env_release }}-proposed, o=Mirantis
+Pin-Priority: 1050

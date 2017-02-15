@@ -1,0 +1,39 @@
+---
+
+- include: tasks/verify_md5.yml
+
+- name: Make sure patches directory exists on Fuel
+  file:
+    path: "{{ fuel_patches_dir }}"
+    state: directory
+  run_once: true
+  delegate_to: localhost
+
+- name: Clean customizations on Fuel
+  file:
+    path: "{{ fuel_custom_dir }}"
+    state: absent
+  delegate_to: localhost
+  run_once: true
+  when:
+    - gather_customizations is defined
+    - gather_customizations
+
+- name: Clean customizations
+  file:
+    path: "{{ custom_dir }}"
+    state: absent
+  when:
+    - gather_customizations is defined
+    - gather_customizations
+
+- name: Check if customizations were already gathered
+  stat:
+    path: "{{ fuel_custom_dir }}/{{ ansible_hostname }}/"
+  register: customizations
+  delegate_to: localhost
+
+- include: tasks/gather_customizations_action.yml
+  when:
+    - not customizations.stat.exists
+

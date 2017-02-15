@@ -1,0 +1,18 @@
+---
+
+- name: Clean APT files
+  file:
+    path: "{{ apt_dir }}"
+    state: absent
+  when:
+    - apt_update is defined
+    - apt_update
+
+- name: Check if APT directory already exists
+  stat:
+    path: "{{ apt_dir }}"
+  register: apt_directory
+
+- include: tasks/apt_update_action.yml
+  when:
+    - not apt_directory.stat.exists

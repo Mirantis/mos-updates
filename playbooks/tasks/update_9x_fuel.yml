@@ -1,0 +1,49 @@
+- include: backup_fuel.yml
+
+- name: Yum clean all
+  command: yum clean all
+
+- name: Yum update
+  command: yum -y update
+
+- name: Systemd loads fresh units
+  command: systemctl daemon-reload
+
+- name: Re-apply puppet master node configuration
+  command: /etc/puppet/modules/fuel/examples/deploy.sh
+
+- name: Restart Postgres
+  shell: systemctl restart postgresql && sleep 42
+
+- name: Restart other Fuel services
+  service: name={{ item }} state=restarted
+  with_items: "{{ fuel_services }}"
+
+- name: Disable UCA release
+  disable_release:
+    release: "Mitaka on Ubuntu+UCA 14.04"
+
+- name: Remove 9.0-holdback LP1663728
+  remove_repo_by_name:
+    release: "Mitaka on Ubuntu 14.04"
+    name: "mos-holdback"
+
+- name: Add MOS 9.2 repos
+  add_repo_to_release:
+    release: "Mitaka on Ubuntu 14.04"
+    name: "{{ item.name }}"
+    url: "{{ item.url }}"
+    suite: "{{ item.suite }}"
+    section: "{{ item.section }}"
+    type: "{{ item.type }}"
+    priority: "{{ item.priority }}"
+  with_items: "{{ mos92_repos }}"
+
+- name: Update Ubuntu template for building Mirrors
+  command: cp -f playbooks/templates/ubuntu.yaml /usr/share/fuel-mirror/
+
+- name: Rebuild bootstrap images
+  command: fuel-bootstrap build --activate
+  when:
+    - rebuild_bootstrap is defined
+    - rebuild_bootstrap

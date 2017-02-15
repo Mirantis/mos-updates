@@ -1,0 +1,61 @@
+---
+
+- hosts: fuel
+  connection: local
+  any_errors_fatal: true
+  vars_files:
+    - "vars/common.yml"
+    - "vars/mos_releases/{{ mos_release }}.yml"
+
+  tasks:
+  - name: Remove 9.0-holdback LP1663728
+    remove_repo_by_name:
+      env_id: "{{ env_id }}"
+      name: "mos-holdback"
+
+  - name: Add MOS 9.2 repos
+    add_repo_to_env:
+      env_id: "{{ env_id }}"
+      name: "{{ item.name }}"
+      url: "{{ item.url }}"
+      suite: "{{ item.suite }}"
+      section: "{{ item.section }}"
+      type: "{{ item.type }}"
+      priority: "{{ item.priority }}"
+    with_items: "{{ mos92_repos }}"
+
+
+- hosts: env_{{ env_id }}
+  any_errors_fatal: true
+  vars_files:
+    - "vars/common.yml"
+    - "vars/mos_releases/{{ mos_release }}.yml"
+
+  tasks:
+  - name: Fix apt-preferences
+    command: sed -i -e 's|n=mos9.0-updates|n=mos9.0|' /etc/apt/preferences.d/mos-updates.pref
+    ignore_errors: true
+
+  - name: Fix domain name in Neutron conf
+    command: sed -i -e 's|domain_id=Default|domain_name=Default|' /etc/neutron/neutron.conf
+    ignore_errors: true
+
+  - name: Add MOS 9.2 repo key
+    apt_key:
+        url={{ fuel_url }}/{{ snapshot_repo }}/archive-mos9.0.key
+
+  - name: Update MCollective
+    apt:
+      update_cache: yes
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - nailgun-agent
+      - nailgun-mcagents
+
+  - name: Restart MCollective
+    service:
+      name: mcollective
+      state: restarted
+
+- include: restart_services.yml

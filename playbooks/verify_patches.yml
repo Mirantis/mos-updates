@@ -1,0 +1,17 @@
+---
+
+- hosts: env_{{ env_id }}
+  any_errors_fatal: true
+
+  vars_files:
+    - "vars/common.yml"
+    - "vars/mos_releases/{{ mos_release }}.yml"
+    - "vars/steps/verify_patches.yml"
+
+  tasks:
+    - include: tasks/apt_update.yml
+
+    - include: tasks/verify_customizations.yml
+
+    - include: tasks/verify_patches.yml
+

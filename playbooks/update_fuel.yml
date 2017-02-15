@@ -1,0 +1,24 @@
+---
+- hosts: fuel
+  connection: local
+  vars:
+      rebuild_bootstrap: true
+  vars_files:
+    - "vars/common.yml"
+    - "vars/mos_releases/{{ mos_release }}.yml"
+
+  tasks:
+  - name: Make backup directory exists on Fuel
+    file:
+      path: "{{ fuel_backup_dir }}"
+      state: directory
+
+  - include: tasks/update_old_fuel.yml
+    when: mos_release == "6.1" or
+          mos_release == "7.0" or
+          mos_release == "8.0"
+
+  - include: tasks/update_9x_fuel.yml
+    when: mos_release == "9.0" or
+          mos_release == "9.1" or
+          mos_release == "9.2"

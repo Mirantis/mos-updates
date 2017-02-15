@@ -1,0 +1,27 @@
+---
+
+- hosts: env_{{ env_id }}
+  any_errors_fatal: true
+
+  vars_files:
+    - "vars/common.yml"
+    - "vars/mos_releases/{{ mos_release }}.yml"
+    - "vars/steps/gather_customizations.yml"
+
+  tasks:
+    - include: tasks/health_checks.yml
+      when: health_check is undefined or
+            health_check
+
+    - include: tasks/apt_update.yml
+
+    - name: Save current locked packages
+      shell:  apt-mark showhold
+      register: locked_packages
+
+    - block:
+      - include: tasks/gather_customizations.yml
+
+      always:
+        - name: Restore locked packages
+          shell: apt-mark showhold | xargs apt-mark unhold; echo "{{ locked_packages.stdout }}" | xargs apt-mark hold; exit 0

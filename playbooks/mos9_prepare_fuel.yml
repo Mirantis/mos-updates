@@ -1,0 +1,65 @@
+---
+
+- hosts: fuel
+  connection: local
+  vars_files:
+    - "vars/common.yml"
+
+  tasks:
+    - name: Check mos_realease is 9.x
+      fail:
+        msg: "[ERROR] This playbook can be ran only on MOS 9.x"
+      when:
+        - mos_release != "9.0"
+        - mos_release != "9.1"
+        - mos_release != "9.2"
+    - name: Install Cudet package
+      yum:
+        name: python-cudet
+        state: latest
+
+    - name: Fixing bug 1616119
+      shell: sed -i "s/\$\.dpdk/\$\.get\('dpdk'\)/g" /etc/puppet/modules/osnailyfacter/modular/netconfig/tasks.yaml /etc/puppet/modules/openstack_tasks/examples/roles/tasks.yaml
+
+    - name: Sync puppet manifests for bug 1616119
+      command: fuel rel --sync-deployment-tasks --dir /etc/puppet
+
+    - name: Update special packages
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+          - fuel-nailgun
+          - fuel-utils
+          - python-fuelclient
+          - rubygem-astute
+      register: result_nailgun_update
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Get services list for Nailgun
+      shell: rpm -ql "$(rpm -q fuel-nailgun)" | grep '^/usr/lib/systemd/system/\w*.service$' | awk -F'/' '{print $NF}' | sed 's/.service$//'
+      register: nailgun_services
+
+    - name: Stop Nailgun serivces
+      service: name={{ item }} state=stopped
+      with_items: "{{ nailgun_services.stdout_lines }}"
+      when:
+        - nailgun_services.stdout != ""
+        - result_nailgun_update.changed
+
+    - name: Migrate Nailgun DB
+      command: nailgun_syncdb
+
+    - name: Update version
+      yum:
+        name: fuel-release
+        state: latest
+
+    - name: Start Nailgun services
+      service: name={{ item }} state=started
+      with_items: "{{ nailgun_services.stdout_lines }}"
+      when:
+        - nailgun_services.stdout != ""
+        - result_nailgun_update.changed

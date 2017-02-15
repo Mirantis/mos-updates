@@ -1,0 +1,37 @@
+---
+
+- name: Read results of MD5 Sum verification
+  command: cat "{{ report_dir }}/reinstall_pkgs"
+  register: reinstall_pkgs
+
+- name: APT reinstall packages before customizing
+  command: "apt-get -y -c {{ apt_conf }} install --reinstall {{ item }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  with_items: "{{ reinstall_pkgs.stdout_lines }}"
+  when:
+    - reinstall_pkgs is defined
+    - reinstall_pkgs.stdout != ""
+
+- name: Apply patches
+  ignore_errors: true
+  script: files/apply_patches.sh
+  environment:
+    PATCHES_DIR: "{{ patches_dir }}"
+    IGNORE_APPLIED_PATCHES: "{{ ignore_applied_patches }}"
+    KEEP_PKGS: "{{ keep_pkgs }}"
+  register: apply_patches_result
+
+- name: Show results of Patches Applying
+  debug:
+    msg: "{{ apply_patches_result.stdout_lines }}"
+  when:
+    - apply_patches_result is defined
+    - apply_patches_result.stdout != ""
+
+- name: Fail if patches applying failed
+  fail:
+    msg: "[ERROR] Applying of patches FAILED"
+  when:
+    - apply_patches_result is defined
+    - apply_patches_result | failed

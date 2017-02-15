@@ -1,0 +1,19 @@
+Dir {
+    Etc {{ apt_dir }};
+}
+
+APT {
+    Get {
+        List-Cleanup "0";
+        Assume-Yes true;
+        force-yes true;
+        AllowUnauthenticated true;
+    }
+}
+
+Dpkg {
+    Options {
+        "--force-confdef";
+        "--force-confold";
+    }
+}

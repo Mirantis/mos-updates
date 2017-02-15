@@ -1,0 +1,42 @@
+---
+
+- name: Create APT preferences directory
+  file:
+    path: "{{ apt_dir }}/preferences.d"
+    state: directory
+
+- name: Generate sources.lists for configured repos
+  template:
+    src: "preferences.j2"
+    dest: "{{ apt_dir }}/preferences.d/mos.pref"
+    force: yes
+
+- name: Create APT sources.lists directory
+  file:
+    path: "{{ apt_src_dir }}"
+    state: directory
+
+- name: Generate sources.lists for configured repos
+  template:
+    src: "{{ srcs_list_tmpl }}"
+    dest: "{{ apt_src_dir }}/{{ item.name }}.list"
+    force: yes
+  with_items: "{{ apt_repos }}"
+
+- name: Copy configured sources.lists
+  copy:
+    remote_src: True
+    src: "{{ item.path }}"
+    dest: "{{ apt_src_dir }}/{{ item.name }}.list"
+  with_items: "{{ apt_sources_lists }}"
+  when:
+    - apt_sources_lists is defined
+
+- name: Copy apt.conf
+  template:
+    src: "apt.conf.j2"
+    dest: "{{ apt_conf }}"
+    force: yes
+
+- name: APT Update
+  command: apt-get -c {{ apt_conf }} update

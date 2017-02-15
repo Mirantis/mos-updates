@@ -1,0 +1,51 @@
+---
+
+- name: Make sure report directory exists
+  file:
+    path: "{{ report_dir }}"
+    state: directory
+
+- include: tasks/get_current_mu.yml
+
+- name: Get list of upgrdable packages
+  shell:  apt-get -c "{{ apt_conf }}" upgrade  --just-print | egrep -v "Conf|Inst" | tee "{{ report_dir }}/upgradable_pkgs"; exit 0
+  register: upgradable_pkgs
+
+- name: Show upgradable packages
+  debug:
+    msg: "{{ upgradable_pkgs.stdout_lines }}"
+  when:
+    - upgradable_pkgs.stdout != ""
+
+- name: Check MD5 sum for installed packages
+  script: files/verify_md5_packages_ubuntu.sh
+  environment:
+    APT_CONF: "{{ apt_conf }}"
+    UNKNOWN_CUSTOM_PKGS: "{{ unknown_custom_pkgs }}"
+    UNKNOWN_UPGRADABLE_PKGS: "{{ unknown_upgradable_pkgs }}"
+  ignore_errors: true
+  register: verify_result
+
+- name: Show results of MD5 sum verification
+  debug:
+    msg: "{{ verify_result.stdout_lines }}"
+  when:
+    - verify_result.stdout != ""
+    - verify_result.rc != 0
+
+- name: Fail if MD5 verification failed
+  fail:
+    msg: "[ERROR] MD5 sum Verification FAILED"
+  when:
+    - verify_result.rc != 0
+
+- name: Store the MD5 verivication
+  shell: echo "{{ verify_result.stdout }}" > "{{ report_dir }}/md5_results"; exit 0
+
+- name: Make sure backup directory exists
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+
+- name: Make a backup of /etc
+  shell: tar -czf "{{ backup_dir }}"/etc.tgz /etc/

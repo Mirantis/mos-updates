@@ -22,3 +22,8 @@
     when: mos_release == "9.0" or
           mos_release == "9.1" or
           mos_release == "9.2"
+
+  - include: tasks/mos9_disable_upstream_repo.yaml
+    when: mos_release == "9.0" or
+          mos_release == "9.1" or
+          mos_release == "9.2"

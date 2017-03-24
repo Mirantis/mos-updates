@@ -3,7 +3,7 @@
 import os
 from setuptools import setup
 
-dist = "/root/mos-updates"
+dist = "/root/mos_playbooks/mos_mu/"
 data_files = []
 for r, ds, fs in os.walk('./'):
     if '.git' not in r:

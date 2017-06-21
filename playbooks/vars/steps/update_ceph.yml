@@ -20,7 +20,7 @@
 # preferences for packages in specified repo at all
 # or doesn't do it correctly)
 #
-#add_ceph_repo: false
+add_ceph_repo: false
 
 # Restart ceph services
 restart_ceph: true
